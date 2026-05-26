@@ -1,0 +1,25 @@
+name: Live Stream Takbiran dari Drive (File Besar)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Install FFMPEG & Gdown
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg python3-pip
+        pip3 install gdown
+
+    - name: Download Video dari Google Drive (Bypass Warning File Besar)
+      run: |
+        gdown --confirm --id ${{ secrets.DRIVE_FILE_ID }} -O video.mp4
+
+    - name: Start Streaming
+      run: |
+        ffmpeg -re -stream_loop -1 -i "video.mp4" -c:v copy -c:a copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
