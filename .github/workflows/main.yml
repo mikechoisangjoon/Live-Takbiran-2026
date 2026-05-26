@@ -1,4 +1,4 @@
-name: Live Stream Takbiran dari Drive (File Besar)
+name: Live Stream Takbiran (Optimized)
 
 on:
   workflow_dispatch:
@@ -16,10 +16,16 @@ jobs:
         sudo apt-get install -y ffmpeg python3-pip
         pip3 install gdown
 
-    - name: Download Video dari Google Drive
+    - name: Download Video (Tahap 1 - Harus Selesai Dulu)
       run: |
+        echo "Sedang mengunduh file 1.8GB, mohon tunggu..."
         gdown "${{ secrets.DRIVE_FILE_ID }}" -O video.mp4
+        echo "Download selesai, memulai proses streaming..."
 
-    - name: Start Streaming
+    - name: Start Streaming (Tahap 2)
       run: |
-        ffmpeg -re -stream_loop -1 -i "video.mp4" -c:v copy -c:a copy -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+        # Menggunakan bitrate 4000k agar stabil dan tidak di-reject YouTube
+        ffmpeg -re -stream_loop -1 -i "video.mp4" \
+        -c:v libx264 -preset veryfast -b:v 4000k -maxrate 4000k -bufsize 6000k \
+        -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 \
+        -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
