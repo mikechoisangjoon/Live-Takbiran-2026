@@ -16,9 +16,9 @@ jobs:
         sudo apt-get install -y ffmpeg python3-pip
         pip3 install gdown
 
-    - name: Download Video dari Google Drive (Bypass Warning File Besar)
+    - name: Download Video dari Google Drive
       run: |
-        gdown --confirm --id ${{ secrets.DRIVE_FILE_ID }} -O video.mp4
+        gdown "${{ secrets.DRIVE_FILE_ID }}" -O video.mp4
 
     - name: Start Streaming
       run: |
