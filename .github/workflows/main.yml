@@ -1,7 +1,13 @@
-name: Live Stream Takbiran (Optimized)
+name: Live Stream Takbiran Auto 24/7
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *' # Backup otomatis setiap 6 jam jika rantai terputus
+
+permissions:
+  actions: write
+  contents: read
 
 jobs:
   stream:
@@ -16,16 +22,22 @@ jobs:
         sudo apt-get install -y ffmpeg python3-pip
         pip3 install gdown
 
-    - name: Download Video (Tahap 1 - Harus Selesai Dulu)
+    - name: Download Video dari Google Drive
       run: |
-        echo "Sedang mengunduh file 1.8GB, mohon tunggu..."
         gdown "${{ secrets.DRIVE_FILE_ID }}" -O video.mp4
-        echo "Download selesai, memulai proses streaming..."
 
-    - name: Start Streaming (Tahap 2)
+    - name: Start Streaming dengan Sistem Auto-Chaining
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Menggunakan bitrate 4000k agar stabil dan tidak di-reject YouTube
-        ffmpeg -re -stream_loop -1 -i "video.mp4" \
+        echo "Memulai streaming otomatis selama 5 jam 50 menit..."
+        
+        # Batasi ffmpeg hanya berjalan 21000 detik (5,5 jam) agar tidak terkena kill paksa dari GitHub
+        timeout 21000s ffmpeg -re -stream_loop -1 -i "video.mp4" \
         -c:v libx264 -preset veryfast -b:v 4000k -maxrate 4000k -bufsize 6000k \
         -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 \
-        -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+        -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}" || true
+
+        # Sesaat setelah ffmpeg di atas selesai, perintah di bawah ini akan memicu run baru otomatis
+        echo "Waktu sesi hampir habis! Memicu workflow baru agar live tetap menyala..."
+        gh workflow run main.yml
